@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Opening File Browser</title>
+<style>
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  margin: 2rem;
+  line-height: 1.4;
+}
+a {
+  color: #0645ad;
+}
+</style>
+</head>
+<body>
+<p id="message">Opening File Browser...</p>
+<p><a id="fallback" href="./">Open files</a></p>
+<script>
+(function () {
+  var prefix = "/files/open/";
+  var path = window.location.pathname;
+  var message = document.getElementById("message");
+  var fallback = document.getElementById("fallback");
+
+  function showError(text) {
+    message.textContent = text;
+    fallback.href = "/files/";
+  }
+
+  function getTunnelUrl(html) {
+    var meta = html.match(/url=(https:\/\/[a-z0-9-]+\.trycloudflare\.com)/i);
+    if (meta && meta[1]) return meta[1];
+
+    var link = html.match(/href="(https:\/\/[a-z0-9-]+\.trycloudflare\.com)"/i);
+    if (link && link[1]) return link[1];
+
+    return "";
+  }
+
+  if (path.indexOf(prefix) !== 0) {
+    if (path === "/files/link") {
+      window.location.replace("/files/link/");
+      return;
+    }
+
+    window.location.replace("/files/");
+    return;
+  }
+
+  var filePath = path.slice(prefix.length);
+  if (!filePath) {
+    window.location.replace("/files/");
+    return;
+  }
+
+  var request = new XMLHttpRequest();
+  request.open("GET", "/files/?_=" + new Date().getTime(), true);
+  request.onreadystatechange = function () {
+    if (request.readyState !== 4) return;
+
+    if (request.status < 200 || request.status >= 300) {
+      showError("Could not load the current File Browser tunnel URL.");
+      return;
+    }
+
+    var tunnelUrl = getTunnelUrl(request.responseText);
+    if (!tunnelUrl) {
+      showError("Could not find the current File Browser tunnel URL.");
+      return;
+    }
+
+    var target = tunnelUrl + "/files/files/" + filePath + window.location.search + window.location.hash;
+    fallback.href = target;
+    window.location.replace(target);
+  };
+  request.send(null);
+}());
+</script>
+</body>
+</html>

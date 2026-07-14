@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>File Link Builder</title>
+<style>
+body {
+  color: #1f2933;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  margin: 0;
+  line-height: 1.45;
+}
+main {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 32px 18px;
+}
+h1 {
+  font-size: 24px;
+  margin: 0 0 18px;
+}
+label {
+  display: block;
+  font-weight: 600;
+  margin: 18px 0 8px;
+}
+textarea,
+input {
+  box-sizing: border-box;
+  font: inherit;
+  width: 100%;
+}
+textarea {
+  min-height: 110px;
+  padding: 10px;
+  resize: vertical;
+}
+input {
+  padding: 10px;
+}
+button {
+  cursor: pointer;
+  font: inherit;
+  margin-top: 12px;
+  padding: 9px 14px;
+}
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.hint {
+  color: #52606d;
+  font-size: 14px;
+  margin: 8px 0 0;
+}
+</style>
+</head>
+<body>
+<main>
+  <h1>File Link Builder</h1>
+
+  <label for="source">File path or copied File Browser URL</label>
+  <textarea id="source" placeholder="data/audiobooks/bearbearpodcast/《心態致勝》Mindset.mp3"></textarea>
+  <p class="hint">Links created here still require File Browser login.</p>
+
+  <div class="actions">
+    <button id="build" type="button">Build Link</button>
+    <button id="copy" type="button">Copy</button>
+  </div>
+
+  <label for="result">Stable link</label>
+  <input id="result" readonly>
+</main>
+
+<script>
+(function () {
+  var source = document.getElementById("source");
+  var result = document.getElementById("result");
+  var build = document.getElementById("build");
+  var copy = document.getElementById("copy");
+
+  function trim(text) {
+    return text.replace(/^\s+|\s+$/g, "");
+  }
+
+  function stripKnownPrefix(text) {
+    var markers = [
+      "/files/files/",
+      "/files/open/",
+      "/files/api/raw/"
+    ];
+    var i;
+    var markerIndex;
+
+    for (i = 0; i < markers.length; i += 1) {
+      markerIndex = text.indexOf(markers[i]);
+      if (markerIndex !== -1) {
+        return text.slice(markerIndex + markers[i].length);
+      }
+    }
+
+    return text.replace(/^\/+/, "").replace(/^files\/files\//, "").replace(/^files\/open\//, "");
+  }
+
+  function removeUrlTail(text) {
+    return text.split("#")[0].split("?")[0];
+  }
+
+  function encodePath(path) {
+    var parts = path.split("/");
+    var encoded = [];
+    var i;
+    var part;
+
+    for (i = 0; i < parts.length; i += 1) {
+      part = parts[i];
+      try {
+        part = decodeURIComponent(part);
+      } catch (e) {}
+      if (part) encoded.push(encodeURIComponent(part));
+    }
+
+    return encoded.join("/");
+  }
+
+  function buildLink() {
+    var path = removeUrlTail(stripKnownPrefix(trim(source.value)));
+    if (!path) {
+      result.value = "";
+      return;
+    }
+
+    result.value = window.location.origin + "/files/open/" + encodePath(path);
+  }
+
+  build.onclick = buildLink;
+  source.oninput = buildLink;
+
+  copy.onclick = function () {
+    buildLink();
+    result.focus();
+    result.select();
+    document.execCommand("copy");
+  };
+}());
+</script>
+</body>
+</html>
